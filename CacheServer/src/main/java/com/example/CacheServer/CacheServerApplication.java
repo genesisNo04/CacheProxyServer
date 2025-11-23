@@ -1,5 +1,6 @@
 package com.example.CacheServer;
 
+import com.example.CacheServer.CacheStore.CacheStore;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -25,7 +26,19 @@ public class CacheServerApplication implements ApplicationRunner {
 	@Override
 	public void run(ApplicationArguments args) throws Exception {
 		if (clearCache) {
-
+			CacheStore.clear();
+			System.out.println("Cache cleared.");
+			System.exit(0);
 		}
+
+		if (origin == null || origin.isEmpty() || port == null) {
+			System.out.println("Usage: --port=<number> --origin=<url>");
+			System.exit(1);
+		}
+
+		System.setProperty("sever.port", String.valueOf(port));
+
+		System.out.println("Starting caching proxy on port " + port);
+		System.out.println("Forwarding requests to " + origin);
 	}
 }
