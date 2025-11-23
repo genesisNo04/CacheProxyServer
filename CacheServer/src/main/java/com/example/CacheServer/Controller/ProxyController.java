@@ -1,5 +1,6 @@
 package com.example.CacheServer.Controller;
 
+import com.example.CacheServer.CacheServerApplication;
 import com.example.CacheServer.CacheStore.CacheStore;
 import com.example.CacheServer.DTO.CacheResponse;
 import jakarta.servlet.http.HttpServletRequest;
@@ -8,7 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.util.Map;
 
@@ -16,9 +16,6 @@ import java.util.Map;
 public class ProxyController {
 
     private final WebClient client = WebClient.builder().build();
-
-    @Value("${origin}")
-    private String origin;
 
     @GetMapping("/**")
     public ResponseEntity<?> handleGet(HttpServletRequest request) {
@@ -36,7 +33,10 @@ public class ProxyController {
                     .body(cached.getBody());
         }
 
-        String url = origin + fullPath;
+        String url = CacheServerApplication.getOrigin() + fullPath;
+        System.out.println("---------------");
+        System.out.println("Proxying request to: " + url);
+        System.out.println("---------------");
 
         var response = client.get().uri(url)
                 .exchangeToMono(clientResp ->
@@ -46,6 +46,11 @@ public class ProxyController {
                                         "headers", clientResp.headers().asHttpHeaders(),
                                         "body", body
                                 ))).block();
+
+        if (response == null) {
+            return ResponseEntity.status(502)
+                    .body("Failed to reach origin: " + url);
+        }
 
         int status = (int) response.get("status");
         HttpHeaders originHeaders = (HttpHeaders) response.get("headers");
